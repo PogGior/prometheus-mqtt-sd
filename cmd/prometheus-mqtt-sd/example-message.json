@@ -1,0 +1,14 @@
+[
+    {
+        "targets": ["0.0.0.0:9004"],
+        "labels": {
+            "job": "first"
+        }
+    },
+    {
+        "targets": ["0.0.0.0:9005"],
+        "labels": {
+            "job": "second"
+        }
+    }
+]
