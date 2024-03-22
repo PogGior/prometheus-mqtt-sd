@@ -1,0 +1,25 @@
+resources:
+- prometheus-service.yaml
+- prometheus-daemonset.yaml
+- prometheus-namespace.yaml
+- prometheus-volume.yaml
+- mosquitto-namespace.yaml
+- mosquitto-service.yaml
+- mosquitto-statefulset.yaml
+
+generatorOptions:
+  disableNameSuffixHash: true
+
+configMapGenerator:
+- name: prometheus-config
+  namespace: prometheus
+  files:
+  - prometheus.yaml
+- name: prometheus-mqtt-sd-config
+  namespace: prometheus
+  files:
+  - prometheus-mqtt-sd.yaml
+- name: mosquitto-config
+  namespace: mosquitto
+  files:
+  - mosquitto.conf

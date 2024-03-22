@@ -1,0 +1,81 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: prometheus
+  namespace: prometheus
+  labels:
+    app: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: prometheus
+  template:
+    metadata:
+      labels:
+        app: prometheus
+    spec:
+      initContainers:
+      - name: volume-permissions
+        image: busybox
+        command: ["sh", "-c", "chmod -R 777 /mnt/data"]
+        volumeMounts:
+        - name: shared-data
+          mountPath: /mnt/data
+      containers:
+      - name: mqtt-sd
+        image: prometheus-mqtt-sd:0.0.1
+        command: ["/app/prometheus-mqtt-sd"]
+        args:
+          - "--config.file"
+          - "/config/prometheus-mqtt-sd.yaml"
+          - "--output.file"
+          - "/shared-data/mqtt-sd.json"
+        volumeMounts:
+        - name: shared-data
+          mountPath: /shared-data
+        - name: prometheus-mqtt-sd-config
+          mountPath: /config
+      - name: prometheus
+        image: prom/prometheus:v2.44.0
+        args:
+            - "--config.file=/etc/prometheus/prometheus.yaml"
+        livenessProbe:
+          httpGet:
+            path: /-/healthy
+            port: metrics
+          initialDelaySeconds: 30
+          timeoutSeconds: 5
+          periodSeconds: 30
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /-/ready
+            port: metrics
+          initialDelaySeconds: 10
+          timeoutSeconds: 5
+          periodSeconds: 10
+          failureThreshold: 3
+        ports:
+        - name: metrics
+          containerPort: 9090
+        volumeMounts:
+        - name: prometheus-config
+          mountPath: /etc/prometheus/
+        - name: shared-data
+          mountPath: /shared-data
+        imagePullPolicy: IfNotPresent
+        resources: {}
+      volumes: 
+      - name: prometheus-config
+        configMap:
+          optional: false
+          defaultMode: 0777
+          name: prometheus-config
+      - name: prometheus-mqtt-sd-config
+        configMap:
+          optional: false
+          defaultMode: 0777
+          name: prometheus-mqtt-sd-config
+      - name: shared-data
+        persistentVolumeClaim:
+          claimName: prometheus-pvc

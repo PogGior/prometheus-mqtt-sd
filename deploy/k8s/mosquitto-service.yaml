@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: service-mosquitto
+  namespace: mosquitto
+  labels:
+    app: mosquitto
+spec:
+  selector:
+    app:  mosquitto
+  ports:
+  - nodePort: 31883
+    port: 1883
+    protocol: TCP
+    targetPort: 1883
+  sessionAffinity: None
+  type: NodePort
+status:
+  loadBalancer: {}
