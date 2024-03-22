@@ -5,6 +5,7 @@ go 1.22.1
 require (
 	github.com/alecthomas/kingpin/v2 v2.4.0
 	github.com/prometheus/common v0.48.0
+	gopkg.in/yaml.v2 v2.4.0
 )
 
 require (
@@ -27,7 +28,6 @@ require (
 	golang.org/x/time v0.5.0 // indirect
 	google.golang.org/appengine v1.6.8 // indirect
 	google.golang.org/protobuf v1.32.0 // indirect
-	gopkg.in/yaml.v2 v2.4.0 // indirect
 	k8s.io/apimachinery v0.28.6 // indirect
 	k8s.io/client-go v0.28.6 // indirect
 	k8s.io/klog/v2 v2.120.1 // indirect

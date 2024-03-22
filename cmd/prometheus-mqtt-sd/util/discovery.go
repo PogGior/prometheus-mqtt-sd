@@ -5,82 +5,75 @@ import (
 	"encoding/json"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
+	"github.com/go-kit/log"
+	"github.com/go-kit/log/level"
 	"github.com/pkg/errors"
 	"github.com/prometheus/common/model"
 	"github.com/prometheus/prometheus/discovery/targetgroup"
 )
 
-
 type discovery struct {
 	topic  string
 	client mqtt.Client
+	logger log.Logger
 }
 
+func (discovery *discovery) Run(ctx context.Context, ch chan<- []*targetgroup.Group) {
 
-func (config *SdConfig) InitDiscovery() (*discovery, error) {
-	client, err := config.initClient()
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
-	cd := &discovery{
-		topic:  config.Topic,
-		client: client,
-	}
-	return cd, nil
-}
-
-func (d *discovery) Run(ctx context.Context, ch chan<- []*targetgroup.Group) {
-	// Create a channel to handle incoming MQTT messages
-	msgChan := make(chan *mqtt.Message)
-
-	// Set up the MQTT message handler
-	d.client.Subscribe(d.topic, 0, func(client mqtt.Client, msg mqtt.Message) {
-		msgChan <- &msg
-	})
+	brokerMessageChain := discovery.brokerSubscribe()
 
 	for {
 		select {
+
 		case <-ctx.Done():
 			return
-		case msg := <-msgChan:
-			// Process the MQTT message to create a targetgroup.Group
-			tg, err := d.processMessage(msg)
+
+		case msg := <-brokerMessageChain:
+			level.Debug(discovery.logger).Log("msg", "received message", "payload", string((*msg).Payload()))
+			tg, err := processMessage((*msg).Payload())
 			if err != nil {
 				continue
 			}
-
-			// Send the target group to the provided channel
 			ch <- tg
+
 		}
 	}
 }
 
-func (d *discovery) processMessage(msg *mqtt.Message) ([]*targetgroup.Group, error) {
-	// TODO: Implement this function to process the MQTT message and create a targetgroup.Group
-	// You will likely need to parse the message payload and possibly use additional metadata
-	// from the MQTT message.
+func (discovery *discovery) brokerSubscribe() chan *mqtt.Message {
 
-	g := []struct {
+	brokerMessageChain := make(chan *mqtt.Message)
+
+	discovery.client.Subscribe(discovery.topic, 0, func(client mqtt.Client, msg mqtt.Message) {
+		brokerMessageChain <- &msg
+	})
+
+	return brokerMessageChain
+}
+
+func processMessage(payload []byte) ([]*targetgroup.Group, error) {
+
+	group := []struct {
 		Targets []string          `json:"targets"`
 		Labels  map[string]string `json:"labels"`
+		Source  string            `json:"source"`
 	}{}
 
-	// deserialize the message payload into the struct g
-	if err := json.Unmarshal((*msg).Payload(), &g); err != nil {
+	if err := json.Unmarshal(payload, &group); err != nil {
 		return nil, errors.WithStack(err)
 	}
 
-	println("Processing message: ", g)
-	println("message lenght: ", len(g) )
-	tgs := make([]*targetgroup.Group, 0, len(g))
+	targetGroups := make([]*targetgroup.Group, 0, len(group))
 
-	for _, group := range g {
+	for _, group := range group {
+
 		targets := make([]model.LabelSet, 0, len(group.Targets))
 		for _, t := range group.Targets {
 			targets = append(targets, model.LabelSet{
 				model.AddressLabel: model.LabelValue(t),
 			})
 		}
+
 		labels := make(model.LabelSet, len(group.Labels))
 		for k, v := range group.Labels {
 			labels[model.LabelName(k)] = model.LabelValue(v)
@@ -89,15 +82,13 @@ func (d *discovery) processMessage(msg *mqtt.Message) ([]*targetgroup.Group, err
 			return nil, errors.WithStack(err)
 		}
 
-		tgs = append(tgs, &targetgroup.Group{
+		targetGroups = append(targetGroups, &targetgroup.Group{
 			Targets: targets,
 			Labels:  labels,
-			Source: group.Labels["job"],
+			Source:  group.Source,
 		})
-		println("tgs: ", tgs)
-		println("tgs lenght: ", len(tgs) )
-		println("targets: ", tgs[0].Targets)
-	}
-	return tgs, nil
 
+	}
+
+	return targetGroups, nil
 }

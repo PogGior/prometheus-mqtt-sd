@@ -1,8 +1,12 @@
 package util
 
 import (
-	"gopkg.in/yaml.v2"
 	"os"
+
+	"github.com/go-kit/log"
+	mqtt "github.com/eclipse/paho.mqtt.golang"
+	"github.com/pkg/errors"
+	"gopkg.in/yaml.v2"
 )
 
 type SdConfig struct {
@@ -25,4 +29,34 @@ func LoadConfig(file string) (*SdConfig, error) {
 	}
 
 	return &config, nil
+}
+
+func (config *SdConfig) InitDiscovery(logger log.Logger) (*discovery, error) {
+
+	client, err := config.initClient()
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	cd := &discovery{
+		topic:  config.Topic,
+		client: client,
+		logger: logger,
+	}
+
+	return cd, nil
+}
+
+func (config *SdConfig)initClient() (mqtt.Client,error) {
+
+	opts := mqtt.NewClientOptions().AddBroker(config.Address)
+	opts.SetClientID(config.ClientID)
+
+	client := mqtt.NewClient(opts)
+
+	if token := client.Connect(); token.Wait() && token.Error() != nil {
+		return nil, token.Error()
+	}
+
+	return client,nil
 }
