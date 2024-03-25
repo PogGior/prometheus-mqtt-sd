@@ -14,13 +14,6 @@ spec:
       labels:
         app: prometheus
     spec:
-      initContainers:
-      - name: volume-permissions
-        image: busybox
-        command: ["sh", "-c", "chmod -R 777 /mnt/data"]
-        volumeMounts:
-        - name: shared-data
-          mountPath: /mnt/data
       containers:
       - name: mqtt-sd
         image: prometheus-mqtt-sd:0.0.1
@@ -30,6 +23,8 @@ spec:
           - "/config/prometheus-mqtt-sd.yaml"
           - "--output.file"
           - "/shared-data/mqtt-sd.json"
+        securityContext:
+          runAsUser: 65534
         volumeMounts:
         - name: shared-data
           mountPath: /shared-data
