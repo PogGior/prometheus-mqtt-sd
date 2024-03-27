@@ -1,18 +1,30 @@
 package util
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"os"
 
-	"github.com/go-kit/log"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
+	"github.com/go-kit/log"
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
 )
 
 type SdConfig struct {
-	Address  string `yaml:"address"`
-	Topic    string `yaml:"topic"`
-	ClientID string `yaml:"client_id"`
+	Address   string     `yaml:"address"`
+	Topic     string     `yaml:"topic"`
+	ClientID  string     `yaml:"client_id"`
+	Username  string     `yaml:"username"`
+	Password  string     `yaml:"password"`
+	TLSConfig *TLSConfig `yaml:"tls"`
+}
+
+type TLSConfig struct {
+	InsecureSkipVerify bool   `yaml:"insecure_skip_verify"`
+	CAFile             string `yaml:"ca_file"`
+	CertFile           string `yaml:"cert_file"`
+	KeyFile            string `yaml:"key_file"`
 }
 
 func LoadConfig(file string) (*SdConfig, error) {
@@ -47,10 +59,23 @@ func (config *SdConfig) InitDiscovery(logger log.Logger) (*discovery, error) {
 	return cd, nil
 }
 
-func (config *SdConfig)initClient() (mqtt.Client,error) {
+func (config *SdConfig) initClient() (mqtt.Client, error) {
 
 	opts := mqtt.NewClientOptions().AddBroker(config.Address)
 	opts.SetClientID(config.ClientID)
+	if config.Username != "" {
+		opts.SetUsername(config.Username)
+	}
+	if config.Password != "" {
+		opts.SetPassword(config.Password)
+	}
+	if config.TLSConfig != nil {
+		tlsConfig, err := config.TLSConfig.NewTlsConfig()
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+		opts.SetTLSConfig(tlsConfig)
+	}
 
 	client := mqtt.NewClient(opts)
 
@@ -58,5 +83,30 @@ func (config *SdConfig)initClient() (mqtt.Client,error) {
 		return nil, token.Error()
 	}
 
-	return client,nil
+	return client, nil
+}
+
+func (config TLSConfig)NewTlsConfig() (*tls.Config, error) {
+	tlsConfig := &tls.Config{}
+	if config.CAFile != "" {
+		certpool := x509.NewCertPool()
+
+		ca, err := os.ReadFile(config.CAFile)
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+		certpool.AppendCertsFromPEM(ca)
+		tlsConfig.RootCAs = certpool
+	}
+	if config.InsecureSkipVerify {
+		tlsConfig.InsecureSkipVerify = true
+	}
+	if config.CertFile != "" && config.KeyFile != "" {
+		clientKeyPair, err := tls.LoadX509KeyPair(config.CertFile, config.KeyFile)
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+		tlsConfig.Certificates = []tls.Certificate{clientKeyPair}
+	}
+	return tlsConfig, nil
 }

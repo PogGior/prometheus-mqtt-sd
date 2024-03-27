@@ -2,7 +2,6 @@ resources:
 - prometheus-service.yaml
 - prometheus-daemonset.yaml
 - prometheus-namespace.yaml
-- prometheus-volume.yaml
 - mosquitto-namespace.yaml
 - mosquitto-service.yaml
 - mosquitto-statefulset.yaml

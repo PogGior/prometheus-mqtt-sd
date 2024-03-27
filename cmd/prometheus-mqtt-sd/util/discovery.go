@@ -30,7 +30,7 @@ func (discovery *discovery) Run(ctx context.Context, ch chan<- []*targetgroup.Gr
 
 		case msg := <-brokerMessageChain:
 			level.Debug(discovery.logger).Log("msg", "received message", "payload", string((*msg).Payload()))
-			tg, err := processMessage((*msg).Payload())
+			tg, err := ProcessMessage((*msg).Payload())
 			if err != nil {
 				continue
 			}
@@ -51,7 +51,7 @@ func (discovery *discovery) brokerSubscribe() chan *mqtt.Message {
 	return brokerMessageChain
 }
 
-func processMessage(payload []byte) ([]*targetgroup.Group, error) {
+func ProcessMessage(payload []byte) ([]*targetgroup.Group, error) {
 
 	group := []struct {
 		Targets []string          `json:"targets"`

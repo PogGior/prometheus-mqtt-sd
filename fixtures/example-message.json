@@ -1,14 +1,14 @@
 [
     {
-        "targets": [
-            "0.0.0.0:9004"
-        ],
+        "targets": ["0.0.0.0:9004"],
+        "source": "info",
         "labels": {
             "job": "first"
         }
     },
     {
-        "targets": [],
+        "targets": ["0.0.0.0:9100"],
+        "source": "debug",
         "labels": {
             "job": "second"
         }

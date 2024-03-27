@@ -72,5 +72,4 @@ spec:
           defaultMode: 0777
           name: prometheus-mqtt-sd-config
       - name: shared-data
-        persistentVolumeClaim:
-          claimName: prometheus-pvc
+        emptyDir: {}
