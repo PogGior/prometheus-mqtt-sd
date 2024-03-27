@@ -1,3 +1,5 @@
 *.tar
 *.crt
 *.key
+fixtures/output.json
+prometheus-mqtt-sd

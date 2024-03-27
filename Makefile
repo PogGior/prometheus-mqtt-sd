@@ -11,13 +11,26 @@ MOSQUITTO_HOST=0.0.0.0
 endif
 
 ifndef
-MOSQUITTO_PORT=31883
+MOSQUITTO_PORT=1883
 endif
 
 
 
 docker-image:
+	@echo "Building docker image..."
 	docker build -t $(DOCKER_IMAGE_NAME):$(DOCKER_IMAGE_TAG) .
+
+docker-save:
+	@echo "Saving docker image..."
+	docker save $(DOCKER_IMAGE_NAME):$(DOCKER_IMAGE_TAG) -o $(DOCKER_IMAGE_NAME)_$(DOCKER_IMAGE_TAG).tar
+
+build:
+	@echo "Building binary..."
+	CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -ldflags="-s -w" -o prometheus-mqtt-sd ./cmd/prometheus-mqtt-sd/main.go
+
+run:
+	@echo "Running binary..."
+	./prometheus-mqtt-sd --config.file ./fixtures/config-simple.yaml --output.file ./fixtures/output.json
 
 test:
 	@echo "Generate certs for testing..."

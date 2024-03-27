@@ -56,8 +56,58 @@ To run the plugin in a container, you can use the following command:
 make docker-image
 ```
 
-Examples of how to run the plugin on a container can be found [here](deploy).
+And saved the image in a tar file with:
+
+```bash
+make docker-save
+```
+
+Examples of how to run the plugin on a container in a complex environment including Prometheus integration can be found [here](deploy).
 
 ## Configuration
+
+The plugin can be first configures by providing two startup arguments:
+
+```bash
+./prometheus-mqtt-sd --config.file config.yaml --output.file output.json
+```
+
+- `output.file`: the file where the list of targets will be written in the format expected by Prometheus. The file is read by Prometheus by the file_sd_config.
+- `config.file`: the file where the configuration of the plugin is stored. The configuration file is in YAML format and an example is the following:
+
+```yaml
+address: ssl://0.0.0.0:8883
+topic: topic.test
+client_id: prometheus-mqtt-sd
+username: mqtt
+password: mqtt
+tls:
+  ca_file: /etc/ssl/certs/ca.crt
+  cert_file: /etc/ssl/certs/client.crt
+  key_file: /etc/ssl/private/client.key
+  insecure_skip_verify: false
+```
+
+- `address`: the address of the MQTT broker.
+- `topic`: the topic where the plugin listens for messages.
+- `client_id`: the client id used to connect to the MQTT broker.
+- `username`: the username used to connect to the MQTT broker.
+- `password`: the password used to connect to the MQTT broker.
+- `tls`: the TLS configuration used to connect to the MQTT broker.
+  - `ca_file`: the path to the CA file.
+  - `cert_file`: the path to the client certificate file.
+  - `key_file`: the path to the client key file.
+  - `insecure_skip_verify`: a boolean that indicates if the TLS verification should be skipped.
+
+Other examples of configuration files can be found [here](fixtures).
+
+## Testing
+
+The plugin can be tested using the following command:
+
+```bash
+make test
+```
+
 
 
